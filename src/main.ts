@@ -24,7 +24,10 @@ async function run(): Promise<void> {
     core.info(`Fetching version list for application ${applicationID}...`);
     const versionsResponse = await client.listVersions(applicationID);
 
+    core.debug(`Versions response: ${JSON.stringify(versionsResponse, null, 2)}`);
+
     if (!versionsResponse.applicationVersions || versionsResponse.applicationVersions.length === 0) {
+      core.error(`No versions found. Response: ${JSON.stringify(versionsResponse, null, 2)}`);
       throw new Error('No versions found for this application');
     }
 

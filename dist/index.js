@@ -25698,10 +25698,13 @@ class AppRunApiClient {
         const response = await this.client.get(url, {
             Authorization: this.authHeader
         });
-        if (response.message.statusCode !== 200) {
+        const statusCode = response.message.statusCode;
+        core.debug(`Response status code: ${statusCode}`);
+        if (statusCode !== 200) {
             throw await this.handleError(response);
         }
         const body = await response.readBody();
+        core.debug(`Response body: ${body}`);
         return JSON.parse(body);
     }
     async getVersion(applicationId, version) {
@@ -25710,10 +25713,13 @@ class AppRunApiClient {
         const response = await this.client.get(url, {
             Authorization: this.authHeader
         });
-        if (response.message.statusCode !== 200) {
+        const statusCode = response.message.statusCode;
+        core.debug(`Response status code: ${statusCode}`);
+        if (statusCode !== 200) {
             throw await this.handleError(response);
         }
         const body = await response.readBody();
+        core.debug(`Response body: ${body}`);
         return JSON.parse(body);
     }
     async createVersion(applicationId, config) {
@@ -25724,10 +25730,13 @@ class AppRunApiClient {
             Authorization: this.authHeader,
             'Content-Type': 'application/json'
         });
-        if (response.message.statusCode !== 200) {
+        const statusCode = response.message.statusCode;
+        core.debug(`Response status code: ${statusCode}`);
+        if (statusCode !== 200) {
             throw await this.handleError(response);
         }
         const body = await response.readBody();
+        core.debug(`Response body: ${body}`);
         return JSON.parse(body);
     }
     async activateVersion(applicationId, version) {
@@ -25740,7 +25749,9 @@ class AppRunApiClient {
             Authorization: this.authHeader,
             'Content-Type': 'application/json'
         });
-        if (response.message.statusCode !== 204) {
+        const statusCode = response.message.statusCode;
+        core.debug(`Response status code: ${statusCode}`);
+        if (statusCode !== 204) {
             throw await this.handleError(response);
         }
     }
@@ -25818,7 +25829,9 @@ async function run() {
         const client = new api_client_1.AppRunApiClient(sakuraAccessToken, sakuraAccessTokenSecret);
         core.info(`Fetching version list for application ${applicationID}...`);
         const versionsResponse = await client.listVersions(applicationID);
+        core.debug(`Versions response: ${JSON.stringify(versionsResponse, null, 2)}`);
         if (!versionsResponse.applicationVersions || versionsResponse.applicationVersions.length === 0) {
+            core.error(`No versions found. Response: ${JSON.stringify(versionsResponse, null, 2)}`);
             throw new Error('No versions found for this application');
         }
         core.info(`Found ${versionsResponse.applicationVersions.length} version(s)`);
