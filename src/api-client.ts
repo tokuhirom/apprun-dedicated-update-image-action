@@ -30,11 +30,15 @@ export class AppRunApiClient {
       Authorization: this.authHeader
     });
 
-    if (response.message.statusCode !== 200) {
+    const statusCode = response.message.statusCode;
+    core.debug(`Response status code: ${statusCode}`);
+
+    if (statusCode !== 200) {
       throw await this.handleError(response);
     }
 
     const body = await response.readBody();
+    core.debug(`Response body: ${body}`);
     return JSON.parse(body);
   }
 
@@ -47,11 +51,15 @@ export class AppRunApiClient {
       Authorization: this.authHeader
     });
 
-    if (response.message.statusCode !== 200) {
+    const statusCode = response.message.statusCode;
+    core.debug(`Response status code: ${statusCode}`);
+
+    if (statusCode !== 200) {
       throw await this.handleError(response);
     }
 
     const body = await response.readBody();
+    core.debug(`Response body: ${body}`);
     return JSON.parse(body);
   }
 
@@ -69,11 +77,15 @@ export class AppRunApiClient {
       'Content-Type': 'application/json'
     });
 
-    if (response.message.statusCode !== 200) {
+    const statusCode = response.message.statusCode;
+    core.debug(`Response status code: ${statusCode}`);
+
+    if (statusCode !== 200) {
       throw await this.handleError(response);
     }
 
     const body = await response.readBody();
+    core.debug(`Response body: ${body}`);
     return JSON.parse(body);
   }
 
@@ -91,7 +103,10 @@ export class AppRunApiClient {
       'Content-Type': 'application/json'
     });
 
-    if (response.message.statusCode !== 204) {
+    const statusCode = response.message.statusCode;
+    core.debug(`Response status code: ${statusCode}`);
+
+    if (statusCode !== 204) {
       throw await this.handleError(response);
     }
   }
