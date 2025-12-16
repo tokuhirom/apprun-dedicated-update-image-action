@@ -80,7 +80,31 @@ jobs:
 
 ## Release flow
 
-`v1` tag を更新する｡
+新しいバージョンをリリースする際は、以下の手順でタグを作成します。
+
+### 新しいマイナー/パッチバージョンのリリース
+
+```bash
+# 1. 特定のバージョンタグを作成（例: v1.0.1）
+git tag v1.0.1
+git push origin v1.0.1
+
+# 2. v1 タグを更新して最新バージョンを指すようにする
+git tag -fa v1 -m "Update v1 tag to v1.0.1"
+git push origin v1 --force
+```
+
+### 最初のリリース（v1.0.0）
+
+```bash
+# バージョンタグとメジャーバージョンタグを同時に作成
+git tag v1.0.0
+git tag v1
+git push origin v1.0.0
+git push origin v1
+```
+
+これにより、ユーザーは `@v1` を指定することで、常に最新の v1.x.x バージョンを使用できます。
 
 ## See also
 
