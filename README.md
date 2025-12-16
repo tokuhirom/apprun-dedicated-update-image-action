@@ -78,6 +78,10 @@ jobs:
 * `PUT https://secure.sakura.ad.jp/cloud/api/apprun-dedicated/1.0/applications/{applicationID}` を呼び出してアプリケーションのイメージを更新します
 * 結果として `$.activeVersion` を表示します
 
+## Release flow
+
+`v1` tag を更新する｡
+
 ## See also
 
 https://manual.sakura.ad.jp/api/cloud/apprun-dedicated/
