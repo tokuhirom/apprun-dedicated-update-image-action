@@ -4,7 +4,7 @@ AppRun 専有型のアプリケーションバージョンのイメージを更�
 
 ## Motivation
 
-AppRun 占有型を利用する際､image を差し替えたいときに簡単に差し替えるための github actions が必要だったので開発しました｡
+AppRun 専有型を利用する際､image を差し替えたいときに簡単に差し替えるための github actions が必要だったので開発しました｡
 
 ## Usage
 
