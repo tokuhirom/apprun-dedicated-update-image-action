@@ -78,6 +78,49 @@ jobs:
 * `PUT https://secure.sakura.ad.jp/cloud/api/apprun-dedicated/1.0/applications/{applicationID}` を呼び出してアプリケーションのイメージを更新します
 * 結果として `$.activeVersion` を表示します
 
+## Development
+
+### ローカルでの動作確認
+
+タグを打たずにローカルで動作確認できます：
+
+1. `.env`ファイルを作成（`.env.example`をコピー）
+```bash
+cp .env.example .env
+```
+
+2. `.env`ファイルに実際の値を設定
+```bash
+INPUT_APPLICATIONID=your-application-id
+INPUT_SAKURAACCESSTOKEN=your-access-token
+INPUT_SAKURAACCESSTOKENSECRET=your-secret
+INPUT_IMAGE=ghcr.io/your-org/your-image:tag
+ACTIONS_STEP_DEBUG=true
+```
+
+3. ローカル実行
+```bash
+npm run local
+```
+
+または、シェルスクリプトを使用：
+```bash
+./local-run.sh
+```
+
+### ブランチを指定して実行
+
+GitHub Actionsでタグの代わりにブランチを指定して実行できます：
+
+```yaml
+- uses: tokuhirom/apprun-dedicated-update-image-action@your-branch-name
+  with:
+    applicationID: ${{ vars.APPLICATION_ID }}
+    sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
+    sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
+    image: 'nginx:alpine'
+```
+
 ## Release flow
 
 `v1` tag を更新する｡
