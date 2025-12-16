@@ -3,7 +3,7 @@ description: 'Updates AppRun Dedicated application image by creating and activat
 author: 'tokuhirom'
 
 inputs:
-  applicationId:
+  applicationID:
     description: 'Application ID (UUID)'
     required: true
   sakuraAccessToken:

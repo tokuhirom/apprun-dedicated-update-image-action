@@ -14,7 +14,7 @@ AppRun 占有型を利用する際､image を差し替えたいときに簡単�
 - name: Update application version's image
   uses: tokuhirom/apprun-dedicated-update-image-action@v1
   with:
-    applicationId: ${{ vars.APPLICATION_ID }}
+    applicationID: ${{ vars.APPLICATION_ID }}
     sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
     sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
     image: 'nginx:alpine'
@@ -24,7 +24,7 @@ AppRun 占有型を利用する際､image を差し替えたいときに簡単�
 
 | 名前 | 必須 | 説明 |
 |------|------|------|
-| `applicationId` | Yes | AppRun アプリケーション ID（UUID 形式） |
+| `applicationID` | Yes | AppRun アプリケーション ID（UUID 形式） |
 | `sakuraAccessToken` | Yes | さくらクラウド API アクセストークン（UUID 形式） |
 | `sakuraAccessTokenSecret` | Yes | さくらクラウド API アクセストークンシークレット |
 | `image` | Yes | 新しいコンテナイメージ名（例: `nginx:latest`, `ghcr.io/user/repo:tag`） |
@@ -61,7 +61,7 @@ jobs:
       - name: Update AppRun application
         uses: tokuhirom/apprun-dedicated-update-image-action@v1
         with:
-          applicationId: ${{ vars.APPLICATION_ID }}
+          applicationID: ${{ vars.APPLICATION_ID }}
           sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
           sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
           image: ghcr.io/${{ github.repository }}:${{ github.sha }}

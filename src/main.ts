@@ -9,20 +9,20 @@ import {
 
 async function run(): Promise<void> {
   try {
-    const applicationId = core.getInput('applicationId', { required: true });
+    const applicationID = core.getInput('applicationID', { required: true });
     const sakuraAccessToken = core.getInput('sakuraAccessToken', { required: true });
     const sakuraAccessTokenSecret = core.getInput('sakuraAccessTokenSecret', { required: true });
     const newImage = core.getInput('image', { required: true });
 
     core.info('Validating inputs...');
-    validateUuid(applicationId, 'applicationId');
+    validateUuid(applicationID, 'applicationID');
     validateUuid(sakuraAccessToken, 'sakuraAccessToken');
     validateImageName(newImage);
 
     const client = new AppRunApiClient(sakuraAccessToken, sakuraAccessTokenSecret);
 
-    core.info(`Fetching version list for application ${applicationId}...`);
-    const versionsResponse = await client.listVersions(applicationId);
+    core.info(`Fetching version list for application ${applicationID}...`);
+    const versionsResponse = await client.listVersions(applicationID);
 
     if (!versionsResponse.applicationVersions || versionsResponse.applicationVersions.length === 0) {
       throw new Error('No versions found for this application');
@@ -37,7 +37,7 @@ async function run(): Promise<void> {
     }
 
     core.info(`Fetching details for version ${activeVersionNumber}...`);
-    const versionDetails = await client.getVersion(applicationId, activeVersionNumber);
+    const versionDetails = await client.getVersion(applicationID, activeVersionNumber);
     const currentConfig = versionDetails.applicationVersion;
 
     core.info(`Current image: ${currentConfig.image}`);
@@ -53,13 +53,13 @@ async function run(): Promise<void> {
     const newVersionConfig = prepareNewVersionConfig(currentConfig, newImage);
 
     core.info('Creating new version...');
-    const createResponse = await client.createVersion(applicationId, newVersionConfig);
+    const createResponse = await client.createVersion(applicationID, newVersionConfig);
     const newVersionNumber = createResponse.applicationVersion.version;
 
     core.info(`Created new version: ${newVersionNumber}`);
 
     core.info(`Activating version ${newVersionNumber}...`);
-    await client.activateVersion(applicationId, newVersionNumber);
+    await client.activateVersion(applicationID, newVersionNumber);
 
     core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
 

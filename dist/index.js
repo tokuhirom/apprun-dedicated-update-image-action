@@ -25807,17 +25807,17 @@ const api_client_1 = __nccwpck_require__(7475);
 const utils_1 = __nccwpck_require__(1798);
 async function run() {
     try {
-        const applicationId = core.getInput('applicationId', { required: true });
+        const applicationID = core.getInput('applicationID', { required: true });
         const sakuraAccessToken = core.getInput('sakuraAccessToken', { required: true });
         const sakuraAccessTokenSecret = core.getInput('sakuraAccessTokenSecret', { required: true });
         const newImage = core.getInput('image', { required: true });
         core.info('Validating inputs...');
-        (0, utils_1.validateUuid)(applicationId, 'applicationId');
+        (0, utils_1.validateUuid)(applicationID, 'applicationID');
         (0, utils_1.validateUuid)(sakuraAccessToken, 'sakuraAccessToken');
         (0, utils_1.validateImageName)(newImage);
         const client = new api_client_1.AppRunApiClient(sakuraAccessToken, sakuraAccessTokenSecret);
-        core.info(`Fetching version list for application ${applicationId}...`);
-        const versionsResponse = await client.listVersions(applicationId);
+        core.info(`Fetching version list for application ${applicationID}...`);
+        const versionsResponse = await client.listVersions(applicationID);
         if (!versionsResponse.applicationVersions || versionsResponse.applicationVersions.length === 0) {
             throw new Error('No versions found for this application');
         }
@@ -25827,7 +25827,7 @@ async function run() {
             throw new Error('Could not determine active version');
         }
         core.info(`Fetching details for version ${activeVersionNumber}...`);
-        const versionDetails = await client.getVersion(applicationId, activeVersionNumber);
+        const versionDetails = await client.getVersion(applicationID, activeVersionNumber);
         const currentConfig = versionDetails.applicationVersion;
         core.info(`Current image: ${currentConfig.image}`);
         core.info(`New image: ${newImage}`);
@@ -25839,11 +25839,11 @@ async function run() {
         core.info('Preparing new version configuration...');
         const newVersionConfig = (0, utils_1.prepareNewVersionConfig)(currentConfig, newImage);
         core.info('Creating new version...');
-        const createResponse = await client.createVersion(applicationId, newVersionConfig);
+        const createResponse = await client.createVersion(applicationID, newVersionConfig);
         const newVersionNumber = createResponse.applicationVersion.version;
         core.info(`Created new version: ${newVersionNumber}`);
         core.info(`Activating version ${newVersionNumber}...`);
-        await client.activateVersion(applicationId, newVersionNumber);
+        await client.activateVersion(applicationID, newVersionNumber);
         core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
         core.setOutput('activeVersion', newVersionNumber);
     }
