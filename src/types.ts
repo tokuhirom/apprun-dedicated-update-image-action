@@ -43,7 +43,7 @@ export interface ApplicationVersionSummary {
 }
 
 export interface ListVersionsResponse {
-  applicationVersions: ApplicationVersionSummary[];
+  versions: ApplicationVersionSummary[];
   cursor?: number;
 }
 

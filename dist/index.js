@@ -25830,12 +25830,12 @@ async function run() {
         core.info(`Fetching version list for application ${applicationID}...`);
         const versionsResponse = await client.listVersions(applicationID);
         core.debug(`Versions response: ${JSON.stringify(versionsResponse, null, 2)}`);
-        if (!versionsResponse.applicationVersions || versionsResponse.applicationVersions.length === 0) {
+        if (!versionsResponse.versions || versionsResponse.versions.length === 0) {
             core.error(`No versions found. Response: ${JSON.stringify(versionsResponse, null, 2)}`);
             throw new Error('No versions found for this application');
         }
-        core.info(`Found ${versionsResponse.applicationVersions.length} version(s)`);
-        const activeVersionNumber = (0, utils_1.findActiveVersion)(versionsResponse.applicationVersions);
+        core.info(`Found ${versionsResponse.versions.length} version(s)`);
+        const activeVersionNumber = (0, utils_1.findActiveVersion)(versionsResponse.versions);
         if (!activeVersionNumber) {
             throw new Error('Could not determine active version');
         }
