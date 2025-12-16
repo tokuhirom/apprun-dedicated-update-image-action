@@ -4,7 +4,7 @@ import {
   findActiveVersion,
   prepareNewVersionConfig
 } from '../src/utils';
-import type { ApplicationVersionSummary, ApplicationVersionConfig } from '../src/types';
+import type { ApplicationVersionSummary, ReadApplicationVersionConfig } from '../src/types';
 
 describe('Input Validation', () => {
   describe('validateUuid', () => {
@@ -72,7 +72,7 @@ describe('Version Management', () => {
 
   describe('prepareNewVersionConfig', () => {
     test('copies all required fields and updates image', () => {
-      const existing: ApplicationVersionConfig = {
+      const existing: ReadApplicationVersionConfig = {
         cpu: 500,
         memory: 1024,
         scalingMode: 'cpu',
@@ -81,9 +81,10 @@ describe('Version Management', () => {
         image: 'old:latest',
         registryUsername: null,
         registryPassword: null,
-        registryPasswordAction: 'keep',
         exposedPorts: [],
-        env: [{ key: 'FOO', value: 'bar', valueAction: 'keep' }]
+        env: [{ key: 'FOO', value: 'bar', secret: false }],
+        activeNodeCount: 1,
+        created: 123456
       };
 
       const result = prepareNewVersionConfig(existing, 'new:latest');
@@ -96,11 +97,12 @@ describe('Version Management', () => {
       expect(result.maxScale).toBe(3);
       expect(result.registryPasswordAction).toBe('keep');
       expect(result.env).toHaveLength(1);
-      expect(result.env[0].valueAction).toBe('keep');
+      expect(result.env[0].secret).toBe(false);
+      expect(result.env[0].value).toBe('bar');
     });
 
     test('preserves optional fields', () => {
-      const existing: ApplicationVersionConfig = {
+      const existing: ReadApplicationVersionConfig = {
         cpu: 1000,
         memory: 2048,
         scalingMode: 'fixed',
@@ -111,14 +113,15 @@ describe('Version Management', () => {
         cmd: ['npm', 'start'],
         registryUsername: 'user',
         registryPassword: null,
-        registryPasswordAction: 'keep',
         exposedPorts: [
           {
             targetPort: 8080,
             loadBalancerPort: 80
           }
         ],
-        env: []
+        env: [],
+        activeNodeCount: 2,
+        created: 123456
       };
 
       const result = prepareNewVersionConfig(existing, 'new:v2');
@@ -131,28 +134,36 @@ describe('Version Management', () => {
       expect(result.exposedPorts[0].targetPort).toBe(8080);
     });
 
-    test('sets env valueAction to keep', () => {
-      const existing: ApplicationVersionConfig = {
+    test('handles secret environment variables correctly', () => {
+      const existing: ReadApplicationVersionConfig = {
         cpu: 500,
         memory: 1024,
         scalingMode: 'cpu',
         image: 'old:latest',
         registryUsername: null,
         registryPassword: null,
-        registryPasswordAction: 'keep',
         exposedPorts: [],
         env: [
-          { key: 'API_KEY', value: null, valueAction: 'update' },
-          { key: 'DEBUG', value: 'true', valueAction: 'update' }
-        ]
+          { key: 'API_KEY', value: null, secret: true },
+          { key: 'DEBUG', value: 'true', secret: false }
+        ],
+        activeNodeCount: 1,
+        created: 123456
       };
 
       const result = prepareNewVersionConfig(existing, 'new:latest');
 
       expect(result.env).toHaveLength(2);
-      result.env.forEach(envVar => {
-        expect(envVar.valueAction).toBe('keep');
-      });
+
+      // Secret env var should not have value field
+      expect(result.env[0].key).toBe('API_KEY');
+      expect(result.env[0].secret).toBe(true);
+      expect(result.env[0].value).toBeUndefined();
+
+      // Non-secret env var should have value field
+      expect(result.env[1].key).toBe('DEBUG');
+      expect(result.env[1].secret).toBe(false);
+      expect(result.env[1].value).toBe('true');
     });
   });
 });
