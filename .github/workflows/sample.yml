@@ -21,7 +21,7 @@ jobs:
       - name: Update AppRun application
         uses: tokuhirom/apprun-dedicated-update-image-action@v1
         with:
-          applicationID: ${{ vars.APPLICATION_ID }}
+          applicationID: ${{ vars.APPRUN_DEDICATED_APPLICATION_ID }}
           sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
           sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
           image: ${{ github.event.inputs.image }}
