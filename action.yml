@@ -15,10 +15,16 @@ inputs:
   image:
     description: 'New container image name (e.g., nginx:latest)'
     required: true
+  activate:
+    description: 'Whether to activate the new version immediately (default: true)'
+    required: false
+    default: 'true'
 
 outputs:
+  version:
+    description: 'The newly created version number'
   activeVersion:
-    description: 'The newly activated version number'
+    description: 'The activated version number (same as version if activate=true, otherwise the previously active version)'
 
 runs:
   using: 'node20'
