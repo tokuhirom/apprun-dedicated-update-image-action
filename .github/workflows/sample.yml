@@ -10,6 +10,11 @@ on:
         options:
           - ghcr.io/tokuhirom/debug-httpd:0.0.3
           - ghcr.io/tokuhirom/debug-httpd:0.0.2
+      activate:
+        description: "Activate the new version immediately"
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   deploy:
@@ -19,12 +24,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Update AppRun application
+        id: update
         uses: tokuhirom/apprun-dedicated-update-image-action@v1
         with:
           applicationID: ${{ vars.APPRUN_DEDICATED_APPLICATION_ID }}
           sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
           sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
           image: ${{ github.event.inputs.image }}
+          activate: ${{ github.event.inputs.activate }}
 
-      - name: Show deployed version
-        run: echo "Deployed version ${{ steps.update.outputs.activeVersion }}"
+      - name: Show result
+        run: |
+          echo "Created version: ${{ steps.update.outputs.version }}"
+          echo "Active version: ${{ steps.update.outputs.activeVersion }}"
+          if [ "${{ github.event.inputs.activate }}" = "false" ]; then
+            echo "⚠️ Version ${{ steps.update.outputs.version }} was created but not activated"
+            echo "To activate: Update activeVersion to ${{ steps.update.outputs.version }} via API or Console"
+          else
+            echo "✅ Version ${{ steps.update.outputs.version }} is now active"
+          fi
