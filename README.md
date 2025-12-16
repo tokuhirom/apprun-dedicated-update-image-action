@@ -8,12 +8,66 @@ AppRun 占有型を利用する際､image を差し替えたいときに簡単�
 
 ## Usage
 
-```
+このアクションをワークフローで使用する基本的な例：
+
+```yaml
 - name: Update application version's image
+  uses: tokuhirom/apprun-dedicated-update-image-action@v1
   with:
-    applicationId: {{ vars.applicationId }}
-    sakuraAccessToken: {{ vars.sakuraAccessToken }}
-    sakuraAccessTokenSecret: {{ secrets.sakuraAccessTokenSecret }}
+    applicationId: ${{ vars.APPLICATION_ID }}
+    sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
+    sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
+    image: 'nginx:alpine'
+```
+
+### Inputs
+
+| 名前 | 必須 | 説明 |
+|------|------|------|
+| `applicationId` | Yes | AppRun アプリケーション ID（UUID 形式） |
+| `sakuraAccessToken` | Yes | さくらクラウド API アクセストークン（UUID 形式） |
+| `sakuraAccessTokenSecret` | Yes | さくらクラウド API アクセストークンシークレット |
+| `image` | Yes | 新しいコンテナイメージ名（例: `nginx:latest`, `ghcr.io/user/repo:tag`） |
+
+### Outputs
+
+| 名前 | 説明 |
+|------|------|
+| `activeVersion` | アクティブ化された新しいバージョン番号 |
+
+### 完全なワークフロー例
+
+```yaml
+name: Deploy to AppRun
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Update AppRun application
+        uses: tokuhirom/apprun-dedicated-update-image-action@v1
+        with:
+          applicationId: ${{ vars.APPLICATION_ID }}
+          sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
+          sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
+          image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Show deployed version
+        run: echo "Deployed version ${{ steps.update.outputs.activeVersion }}"
 ```
 
 ## How it works

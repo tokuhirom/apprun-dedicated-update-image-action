@@ -1,0 +1,25 @@
+name: 'AppRun Dedicated Update Image'
+description: 'Updates AppRun Dedicated application image by creating and activating a new version'
+author: 'tokuhirom'
+
+inputs:
+  applicationId:
+    description: 'Application ID (UUID)'
+    required: true
+  sakuraAccessToken:
+    description: 'Sakura Access Token (UUID)'
+    required: true
+  sakuraAccessTokenSecret:
+    description: 'Sakura Access Token Secret'
+    required: true
+  image:
+    description: 'New container image name (e.g., nginx:latest)'
+    required: true
+
+outputs:
+  activeVersion:
+    description: 'The newly activated version number'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

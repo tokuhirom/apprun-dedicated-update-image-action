@@ -1,1 +1,5 @@
 openapi.json
+node_modules/
+lib/
+*.log
+.env
