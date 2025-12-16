@@ -1,0 +1,30 @@
+name: Sample workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Select image version"
+        required: true
+        type: choice
+        options:
+          - ghcr.io/tokuhirom/debug-httpd:0.0.3
+          - ghcr.io/tokuhirom/debug-httpd:0.0.2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update AppRun application
+        uses: tokuhirom/apprun-dedicated-update-image-action@v1
+        with:
+          applicationID: ${{ vars.APPLICATION_ID }}
+          sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
+          sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
+          image: ${{ github.event.inputs.image }}
+
+      - name: Show deployed version
+        run: echo "Deployed version ${{ steps.update.outputs.activeVersion }}"
