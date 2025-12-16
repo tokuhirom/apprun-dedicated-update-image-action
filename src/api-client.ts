@@ -4,7 +4,7 @@ import type {
   ListVersionsResponse,
   GetVersionResponse,
   CreateVersionResponse,
-  ApplicationVersionConfig,
+  CreateApplicationVersionConfig,
   UpdateApplicationRequest,
   ApiError
 } from './types';
@@ -65,14 +65,15 @@ export class AppRunApiClient {
 
   async createVersion(
     applicationId: string,
-    config: Omit<ApplicationVersionConfig, 'version'>
+    config: CreateApplicationVersionConfig
   ): Promise<CreateVersionResponse> {
     const url = `${this.baseUrl}/applications/${applicationId}/versions`;
 
+    const requestBody = JSON.stringify(config);
     core.debug(`Creating new version at: ${url}`);
-    core.debug(`New image: ${config.image}`);
+    core.debug(`Request body: ${requestBody}`);
 
-    const response = await this.client.post(url, JSON.stringify(config), {
+    const response = await this.client.post(url, requestBody, {
       Authorization: this.authHeader,
       'Content-Type': 'application/json'
     });
@@ -117,10 +118,11 @@ export class AppRunApiClient {
 
     try {
       const body = await response.readBody();
+      core.error(`Error response body: ${body}`);
       const error: ApiError = JSON.parse(body);
       errorMessage = `API Error (${statusCode}): ${error.errorCode} - ${error.message}`;
-    } catch {
-      // If we can't parse error, use generic message
+    } catch (e) {
+      core.error(`Failed to parse error response: ${e}`);
     }
 
     return new Error(errorMessage);

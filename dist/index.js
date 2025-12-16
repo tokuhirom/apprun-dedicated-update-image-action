@@ -25724,9 +25724,10 @@ class AppRunApiClient {
     }
     async createVersion(applicationId, config) {
         const url = `${this.baseUrl}/applications/${applicationId}/versions`;
+        const requestBody = JSON.stringify(config);
         core.debug(`Creating new version at: ${url}`);
-        core.debug(`New image: ${config.image}`);
-        const response = await this.client.post(url, JSON.stringify(config), {
+        core.debug(`Request body: ${requestBody}`);
+        const response = await this.client.post(url, requestBody, {
             Authorization: this.authHeader,
             'Content-Type': 'application/json'
         });
@@ -25760,11 +25761,12 @@ class AppRunApiClient {
         let errorMessage = `API request failed with status ${statusCode}`;
         try {
             const body = await response.readBody();
+            core.error(`Error response body: ${body}`);
             const error = JSON.parse(body);
             errorMessage = `API Error (${statusCode}): ${error.errorCode} - ${error.message}`;
         }
-        catch {
-            // If we can't parse error, use generic message
+        catch (e) {
+            core.error(`Failed to parse error response: ${e}`);
         }
         return new Error(errorMessage);
     }
@@ -25959,11 +25961,23 @@ function prepareNewVersionConfig(existingConfig, newImage) {
         registryPassword: existingConfig.registryPassword,
         registryPasswordAction: 'keep',
         exposedPorts: existingConfig.exposedPorts,
-        env: existingConfig.env.map((e) => ({
-            key: e.key,
-            value: e.value,
-            valueAction: 'keep'
-        }))
+        env: existingConfig.env.map((e) => {
+            // If secret is true and we want to keep the value, omit the value field
+            // The API will use the previous version's value
+            if (e.secret) {
+                return {
+                    key: e.key,
+                    secret: true
+                };
+            }
+            else {
+                return {
+                    key: e.key,
+                    value: e.value ?? '',
+                    secret: false
+                };
+            }
+        })
     };
     if (existingConfig.fixedScale !== undefined) {
         newConfig.fixedScale = existingConfig.fixedScale;
