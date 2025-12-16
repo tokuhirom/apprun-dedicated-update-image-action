@@ -25824,6 +25824,7 @@ async function run() {
         const sakuraAccessToken = core.getInput('sakuraAccessToken', { required: true });
         const sakuraAccessTokenSecret = core.getInput('sakuraAccessTokenSecret', { required: true });
         const newImage = core.getInput('image', { required: true });
+        const shouldActivate = core.getInput('activate', { required: false }) !== 'false';
         core.info('Validating inputs...');
         (0, utils_1.validateUuid)(applicationID, 'applicationID');
         (0, utils_1.validateUuid)(sakuraAccessToken, 'sakuraAccessToken');
@@ -25848,6 +25849,7 @@ async function run() {
         core.info(`New image: ${newImage}`);
         if (currentConfig.image === newImage) {
             core.warning(`Image is already set to ${newImage}. No update needed.`);
+            core.setOutput('version', activeVersionNumber);
             core.setOutput('activeVersion', activeVersionNumber);
             return;
         }
@@ -25857,10 +25859,18 @@ async function run() {
         const createResponse = await client.createVersion(applicationID, newVersionConfig);
         const newVersionNumber = createResponse.applicationVersion.version;
         core.info(`Created new version: ${newVersionNumber}`);
-        core.info(`Activating version ${newVersionNumber}...`);
-        await client.activateVersion(applicationID, newVersionNumber);
-        core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
-        core.setOutput('activeVersion', newVersionNumber);
+        core.setOutput('version', newVersionNumber);
+        if (shouldActivate) {
+            core.info(`Activating version ${newVersionNumber}...`);
+            await client.activateVersion(applicationID, newVersionNumber);
+            core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
+            core.setOutput('activeVersion', newVersionNumber);
+        }
+        else {
+            core.info(`Version ${newVersionNumber} created but not activated (activate=false)`);
+            core.info(`To activate this version later, update the application's activeVersion to ${newVersionNumber}`);
+            core.setOutput('activeVersion', activeVersionNumber);
+        }
     }
     catch (error) {
         if (error instanceof Error) {

@@ -13,6 +13,7 @@ async function run(): Promise<void> {
     const sakuraAccessToken = core.getInput('sakuraAccessToken', { required: true });
     const sakuraAccessTokenSecret = core.getInput('sakuraAccessTokenSecret', { required: true });
     const newImage = core.getInput('image', { required: true });
+    const shouldActivate = core.getInput('activate', { required: false }) !== 'false';
 
     core.info('Validating inputs...');
     validateUuid(applicationID, 'applicationID');
@@ -48,6 +49,7 @@ async function run(): Promise<void> {
 
     if (currentConfig.image === newImage) {
       core.warning(`Image is already set to ${newImage}. No update needed.`);
+      core.setOutput('version', activeVersionNumber);
       core.setOutput('activeVersion', activeVersionNumber);
       return;
     }
@@ -60,13 +62,18 @@ async function run(): Promise<void> {
     const newVersionNumber = createResponse.applicationVersion.version;
 
     core.info(`Created new version: ${newVersionNumber}`);
+    core.setOutput('version', newVersionNumber);
 
-    core.info(`Activating version ${newVersionNumber}...`);
-    await client.activateVersion(applicationID, newVersionNumber);
-
-    core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
-
-    core.setOutput('activeVersion', newVersionNumber);
+    if (shouldActivate) {
+      core.info(`Activating version ${newVersionNumber}...`);
+      await client.activateVersion(applicationID, newVersionNumber);
+      core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
+      core.setOutput('activeVersion', newVersionNumber);
+    } else {
+      core.info(`Version ${newVersionNumber} created but not activated (activate=false)`);
+      core.info(`To activate this version later, update the application's activeVersion to ${newVersionNumber}`);
+      core.setOutput('activeVersion', activeVersionNumber);
+    }
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message);

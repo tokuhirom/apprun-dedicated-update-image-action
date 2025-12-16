@@ -22,18 +22,20 @@ AppRun 専有型を利用する際､image を差し替えたいときに簡単�
 
 ### Inputs
 
-| 名前 | 必須 | 説明 |
-|------|------|------|
-| `applicationID` | Yes | AppRun アプリケーション ID（UUID 形式） |
-| `sakuraAccessToken` | Yes | さくらクラウド API アクセストークン（UUID 形式） |
-| `sakuraAccessTokenSecret` | Yes | さくらクラウド API アクセストークンシークレット |
-| `image` | Yes | 新しいコンテナイメージ名（例: `nginx:latest`, `ghcr.io/user/repo:tag`） |
+| 名前 | 必須 | デフォルト | 説明 |
+|------|------|-----------|------|
+| `applicationID` | Yes | - | AppRun アプリケーション ID（UUID 形式） |
+| `sakuraAccessToken` | Yes | - | さくらクラウド API アクセストークン（UUID 形式） |
+| `sakuraAccessTokenSecret` | Yes | - | さくらクラウド API アクセストークンシークレット |
+| `image` | Yes | - | 新しいコンテナイメージ名（例: `nginx:latest`, `ghcr.io/user/repo:tag`） |
+| `activate` | No | `true` | 新しいバージョンを即座にアクティブ化するかどうか |
 
 ### Outputs
 
 | 名前 | 説明 |
 |------|------|
-| `activeVersion` | アクティブ化された新しいバージョン番号 |
+| `version` | 新しく作成されたバージョン番号 |
+| `activeVersion` | アクティブバージョン番号（`activate=true`の場合は`version`と同じ、`activate=false`の場合は以前のアクティブバージョン） |
 
 ### 完全なワークフロー例
 
@@ -69,6 +71,33 @@ jobs:
       - name: Show deployed version
         run: echo "Deployed version ${{ steps.update.outputs.activeVersion }}"
 ```
+
+### アクティブ化せずにバージョンを作成する例
+
+新しいバージョンを作成するだけで、すぐにはアクティブ化したくない場合：
+
+```yaml
+- name: Create new version without activating
+  id: create
+  uses: tokuhirom/apprun-dedicated-update-image-action@v1
+  with:
+    applicationID: ${{ vars.APPLICATION_ID }}
+    sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
+    sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
+    image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+    activate: false
+
+- name: Show created version
+  run: |
+    echo "Created version: ${{ steps.create.outputs.version }}"
+    echo "Active version: ${{ steps.create.outputs.activeVersion }}"
+    echo "To activate: Update activeVersion to ${{ steps.create.outputs.version }}"
+```
+
+このオプションは、以下のような場合に便利です：
+- 新しいバージョンを準備してから、手動でアクティブ化したい
+- 複数の環境で段階的にロールアウトしたい
+- テスト環境で検証してから本番環境でアクティブ化したい
 
 ## How it works
 
