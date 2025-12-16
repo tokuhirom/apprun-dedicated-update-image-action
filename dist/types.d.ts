@@ -1,5 +1,23 @@
-export interface ApplicationVersionConfig {
+export interface ReadApplicationVersionConfig {
     version?: number;
+    cpu: number;
+    memory: number;
+    scalingMode: 'cpu' | 'fixed';
+    fixedScale?: number;
+    minScale?: number;
+    maxScale?: number;
+    scaleInThreshold?: number;
+    scaleOutThreshold?: number;
+    image: string;
+    cmd?: string[];
+    registryUsername: string | null;
+    registryPassword: string | null;
+    exposedPorts: ExposedPort[];
+    env: ReadEnvironmentVariable[];
+    activeNodeCount: number;
+    created: number;
+}
+export interface CreateApplicationVersionConfig {
     cpu: number;
     memory: number;
     scalingMode: 'cpu' | 'fixed';
@@ -14,7 +32,7 @@ export interface ApplicationVersionConfig {
     registryPassword: string | null;
     registryPasswordAction: 'keep' | 'update' | 'delete';
     exposedPorts: ExposedPort[];
-    env: EnvironmentVariable[];
+    env: CreateEnvironmentVariable[];
 }
 export interface ExposedPort {
     targetPort: number;
@@ -27,10 +45,15 @@ export interface ExposedPort {
         timeoutSeconds: number;
     };
 }
-export interface EnvironmentVariable {
+export interface ReadEnvironmentVariable {
     key: string;
     value: string | null;
-    valueAction: 'keep' | 'update' | 'delete';
+    secret: boolean;
+}
+export interface CreateEnvironmentVariable {
+    key: string;
+    value?: string;
+    secret: boolean;
 }
 export interface ApplicationVersionSummary {
     version: number;
@@ -43,10 +66,7 @@ export interface ListVersionsResponse {
     cursor?: number;
 }
 export interface GetVersionResponse {
-    applicationVersion: ApplicationVersionConfig & {
-        activeNodeCount: number;
-        created: number;
-    };
+    applicationVersion: ReadApplicationVersionConfig;
 }
 export interface CreateVersionResponse {
     applicationVersion: {

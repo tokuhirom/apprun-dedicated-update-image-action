@@ -1,5 +1,10 @@
 import * as core from '@actions/core';
-import type { ApplicationVersionSummary, ApplicationVersionConfig } from './types';
+import type {
+  ApplicationVersionSummary,
+  ReadApplicationVersionConfig,
+  CreateApplicationVersionConfig,
+  CreateEnvironmentVariable
+} from './types';
 
 export function validateUuid(value: string, fieldName: string): void {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,10 +47,10 @@ export function findActiveVersion(versions: ApplicationVersionSummary[]): number
 }
 
 export function prepareNewVersionConfig(
-  existingConfig: ApplicationVersionConfig,
+  existingConfig: ReadApplicationVersionConfig,
   newImage: string
-): Omit<ApplicationVersionConfig, 'version'> {
-  const newConfig: Omit<ApplicationVersionConfig, 'version'> = {
+): CreateApplicationVersionConfig {
+  const newConfig: CreateApplicationVersionConfig = {
     cpu: existingConfig.cpu,
     memory: existingConfig.memory,
     scalingMode: existingConfig.scalingMode,
@@ -54,11 +59,22 @@ export function prepareNewVersionConfig(
     registryPassword: existingConfig.registryPassword,
     registryPasswordAction: 'keep' as const,
     exposedPorts: existingConfig.exposedPorts,
-    env: existingConfig.env.map((e) => ({
-      key: e.key,
-      value: e.value,
-      valueAction: 'keep' as const
-    }))
+    env: existingConfig.env.map((e): CreateEnvironmentVariable => {
+      // If secret is true and we want to keep the value, omit the value field
+      // The API will use the previous version's value
+      if (e.secret) {
+        return {
+          key: e.key,
+          secret: true
+        };
+      } else {
+        return {
+          key: e.key,
+          value: e.value ?? '',
+          secret: false
+        };
+      }
+    })
   };
 
   if (existingConfig.fixedScale !== undefined) {
