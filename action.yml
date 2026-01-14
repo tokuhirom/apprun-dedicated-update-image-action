@@ -21,6 +21,8 @@ inputs:
     default: 'true'
 
 outputs:
+  applicationNames:
+    description: 'The application name(s) that were updated. Comma-separated if multiple applications were updated.'
   version:
     description: 'The newly created version number(s). Comma-separated if multiple applications were updated.'
   activeVersion:
