@@ -24,7 +24,7 @@ AppRun 専有型を利用する際､image を差し替えたいときに簡単�
 
 | 名前 | 必須 | デフォルト | 説明 |
 |------|------|-----------|------|
-| `applicationID` | Yes | - | AppRun アプリケーション ID（UUID 形式） |
+| `applicationID` | Yes | - | AppRun アプリケーション ID（UUID 形式）。カンマ区切りで複数指定可能 |
 | `sakuraAccessToken` | Yes | - | さくらクラウド API アクセストークン（UUID 形式） |
 | `sakuraAccessTokenSecret` | Yes | - | さくらクラウド API アクセストークンシークレット |
 | `image` | Yes | - | 新しいコンテナイメージ名（例: `nginx:latest`, `ghcr.io/user/repo:tag`） |
@@ -34,8 +34,8 @@ AppRun 専有型を利用する際､image を差し替えたいときに簡単�
 
 | 名前 | 説明 |
 |------|------|
-| `version` | 新しく作成されたバージョン番号 |
-| `activeVersion` | アクティブバージョン番号（`activate=true`の場合は`version`と同じ、`activate=false`の場合は以前のアクティブバージョン） |
+| `version` | 新しく作成されたバージョン番号（複数アプリケーションの場合はカンマ区切り） |
+| `activeVersion` | アクティブバージョン番号（`activate=true`の場合は`version`と同じ、`activate=false`の場合は以前のアクティブバージョン）（複数アプリケーションの場合はカンマ区切り） |
 
 ### 完全なワークフロー例
 
@@ -98,6 +98,28 @@ jobs:
 - 新しいバージョンを準備してから、手動でアクティブ化したい
 - 複数の環境で段階的にロールアウトしたい
 - テスト環境で検証してから本番環境でアクティブ化したい
+
+### 複数アプリケーションを同時に更新する例
+
+複数のアプリケーションを同時に更新したい場合、カンマ区切りで applicationID を指定できます：
+
+```yaml
+- name: Update multiple applications
+  id: update
+  uses: tokuhirom/apprun-dedicated-update-image-action@v1
+  with:
+    applicationID: ${{ vars.APPLICATION_ID_1 }},${{ vars.APPLICATION_ID_2 }}
+    sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
+    sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
+    image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+- name: Show updated versions
+  run: |
+    echo "Created versions: ${{ steps.update.outputs.version }}"
+    echo "Active versions: ${{ steps.update.outputs.activeVersion }}"
+```
+
+この機能は、同じイメージを使用する複数のアプリケーション（例：ステージング環境と本番環境）を同時にデプロイしたい場合に便利です。
 
 ## How it works
 

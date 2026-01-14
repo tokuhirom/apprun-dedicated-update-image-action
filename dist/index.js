@@ -25818,59 +25818,85 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(7484));
 const api_client_1 = __nccwpck_require__(7475);
 const utils_1 = __nccwpck_require__(1798);
+async function updateApplication(client, applicationID, newImage, shouldActivate) {
+    core.info(`\n--- Processing application ${applicationID} ---`);
+    core.info(`Fetching version list for application ${applicationID}...`);
+    const versionsResponse = await client.listVersions(applicationID);
+    core.debug(`Versions response: ${JSON.stringify(versionsResponse, null, 2)}`);
+    if (!versionsResponse.versions || versionsResponse.versions.length === 0) {
+        core.error(`No versions found. Response: ${JSON.stringify(versionsResponse, null, 2)}`);
+        throw new Error(`No versions found for application ${applicationID}`);
+    }
+    core.info(`Found ${versionsResponse.versions.length} version(s)`);
+    const activeVersionNumber = (0, utils_1.findActiveVersion)(versionsResponse.versions);
+    if (!activeVersionNumber) {
+        throw new Error(`Could not determine active version for application ${applicationID}`);
+    }
+    core.info(`Fetching details for version ${activeVersionNumber}...`);
+    const versionDetails = await client.getVersion(applicationID, activeVersionNumber);
+    const currentConfig = versionDetails.applicationVersion;
+    core.info(`Current image: ${currentConfig.image}`);
+    core.info(`New image: ${newImage}`);
+    if (currentConfig.image === newImage) {
+        core.warning(`Image is already set to ${newImage}. No update needed.`);
+        return {
+            applicationID,
+            version: activeVersionNumber,
+            activeVersion: activeVersionNumber
+        };
+    }
+    core.info('Preparing new version configuration...');
+    const newVersionConfig = (0, utils_1.prepareNewVersionConfig)(currentConfig, newImage);
+    core.info('Creating new version...');
+    const createResponse = await client.createVersion(applicationID, newVersionConfig);
+    const newVersionNumber = createResponse.applicationVersion.version;
+    core.info(`Created new version: ${newVersionNumber}`);
+    if (shouldActivate) {
+        core.info(`Activating version ${newVersionNumber}...`);
+        await client.activateVersion(applicationID, newVersionNumber);
+        core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
+        return {
+            applicationID,
+            version: newVersionNumber,
+            activeVersion: newVersionNumber
+        };
+    }
+    else {
+        core.info(`Version ${newVersionNumber} created but not activated (activate=false)`);
+        core.info(`To activate this version later, update the application's activeVersion to ${newVersionNumber}`);
+        return {
+            applicationID,
+            version: newVersionNumber,
+            activeVersion: activeVersionNumber
+        };
+    }
+}
 async function run() {
     try {
-        const applicationID = core.getInput('applicationID', { required: true });
+        const applicationIDInput = core.getInput('applicationID', { required: true });
         const sakuraAccessToken = core.getInput('sakuraAccessToken', { required: true });
         const sakuraAccessTokenSecret = core.getInput('sakuraAccessTokenSecret', { required: true });
         const newImage = core.getInput('image', { required: true });
         const shouldActivate = core.getInput('activate', { required: false }) !== 'false';
         core.info('Validating inputs...');
-        (0, utils_1.validateUuid)(applicationID, 'applicationID');
+        const applicationIDs = (0, utils_1.parseApplicationIDs)(applicationIDInput);
         (0, utils_1.validateUuid)(sakuraAccessToken, 'sakuraAccessToken');
         (0, utils_1.validateImageName)(newImage);
+        core.info(`Processing ${applicationIDs.length} application(s)...`);
         const client = new api_client_1.AppRunApiClient(sakuraAccessToken, sakuraAccessTokenSecret);
-        core.info(`Fetching version list for application ${applicationID}...`);
-        const versionsResponse = await client.listVersions(applicationID);
-        core.debug(`Versions response: ${JSON.stringify(versionsResponse, null, 2)}`);
-        if (!versionsResponse.versions || versionsResponse.versions.length === 0) {
-            core.error(`No versions found. Response: ${JSON.stringify(versionsResponse, null, 2)}`);
-            throw new Error('No versions found for this application');
+        const results = [];
+        for (const applicationID of applicationIDs) {
+            const result = await updateApplication(client, applicationID, newImage, shouldActivate);
+            results.push(result);
         }
-        core.info(`Found ${versionsResponse.versions.length} version(s)`);
-        const activeVersionNumber = (0, utils_1.findActiveVersion)(versionsResponse.versions);
-        if (!activeVersionNumber) {
-            throw new Error('Could not determine active version');
+        core.info('\n--- Summary ---');
+        for (const result of results) {
+            core.info(`Application ${result.applicationID}: version=${result.version}, activeVersion=${result.activeVersion}`);
         }
-        core.info(`Fetching details for version ${activeVersionNumber}...`);
-        const versionDetails = await client.getVersion(applicationID, activeVersionNumber);
-        const currentConfig = versionDetails.applicationVersion;
-        core.info(`Current image: ${currentConfig.image}`);
-        core.info(`New image: ${newImage}`);
-        if (currentConfig.image === newImage) {
-            core.warning(`Image is already set to ${newImage}. No update needed.`);
-            core.setOutput('version', activeVersionNumber);
-            core.setOutput('activeVersion', activeVersionNumber);
-            return;
-        }
-        core.info('Preparing new version configuration...');
-        const newVersionConfig = (0, utils_1.prepareNewVersionConfig)(currentConfig, newImage);
-        core.info('Creating new version...');
-        const createResponse = await client.createVersion(applicationID, newVersionConfig);
-        const newVersionNumber = createResponse.applicationVersion.version;
-        core.info(`Created new version: ${newVersionNumber}`);
-        core.setOutput('version', newVersionNumber);
-        if (shouldActivate) {
-            core.info(`Activating version ${newVersionNumber}...`);
-            await client.activateVersion(applicationID, newVersionNumber);
-            core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
-            core.setOutput('activeVersion', newVersionNumber);
-        }
-        else {
-            core.info(`Version ${newVersionNumber} created but not activated (activate=false)`);
-            core.info(`To activate this version later, update the application's activeVersion to ${newVersionNumber}`);
-            core.setOutput('activeVersion', activeVersionNumber);
-        }
+        const versions = results.map(r => r.version).join(',');
+        const activeVersions = results.map(r => r.activeVersion).join(',');
+        core.setOutput('version', versions);
+        core.setOutput('activeVersion', activeVersions);
     }
     catch (error) {
         if (error instanceof Error) {
@@ -25926,6 +25952,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.validateUuid = validateUuid;
+exports.parseApplicationIDs = parseApplicationIDs;
 exports.validateImageName = validateImageName;
 exports.findActiveVersion = findActiveVersion;
 exports.prepareNewVersionConfig = prepareNewVersionConfig;
@@ -25935,6 +25962,16 @@ function validateUuid(value, fieldName) {
     if (!uuidRegex.test(value)) {
         throw new Error(`${fieldName} must be a valid UUID format`);
     }
+}
+function parseApplicationIDs(value) {
+    const ids = value.split(',').map(id => id.trim()).filter(id => id.length > 0);
+    if (ids.length === 0) {
+        throw new Error('applicationID must contain at least one valid UUID');
+    }
+    for (const id of ids) {
+        validateUuid(id, 'applicationID');
+    }
+    return ids;
 }
 function validateImageName(image) {
     if (!image || image.trim().length === 0) {

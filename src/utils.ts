@@ -14,6 +14,20 @@ export function validateUuid(value: string, fieldName: string): void {
   }
 }
 
+export function parseApplicationIDs(value: string): string[] {
+  const ids = value.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
+  if (ids.length === 0) {
+    throw new Error('applicationID must contain at least one valid UUID');
+  }
+
+  for (const id of ids) {
+    validateUuid(id, 'applicationID');
+  }
+
+  return ids;
+}
+
 export function validateImageName(image: string): void {
   if (!image || image.trim().length === 0) {
     throw new Error('Image name cannot be empty');

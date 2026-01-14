@@ -1,79 +1,123 @@
 import * as core from '@actions/core';
 import { AppRunApiClient } from './api-client';
 import {
+  parseApplicationIDs,
   validateUuid,
   validateImageName,
   findActiveVersion,
   prepareNewVersionConfig
 } from './utils';
 
+interface UpdateResult {
+  applicationID: string;
+  version: number;
+  activeVersion: number;
+}
+
+async function updateApplication(
+  client: AppRunApiClient,
+  applicationID: string,
+  newImage: string,
+  shouldActivate: boolean
+): Promise<UpdateResult> {
+  core.info(`\n--- Processing application ${applicationID} ---`);
+
+  core.info(`Fetching version list for application ${applicationID}...`);
+  const versionsResponse = await client.listVersions(applicationID);
+
+  core.debug(`Versions response: ${JSON.stringify(versionsResponse, null, 2)}`);
+
+  if (!versionsResponse.versions || versionsResponse.versions.length === 0) {
+    core.error(`No versions found. Response: ${JSON.stringify(versionsResponse, null, 2)}`);
+    throw new Error(`No versions found for application ${applicationID}`);
+  }
+
+  core.info(`Found ${versionsResponse.versions.length} version(s)`);
+
+  const activeVersionNumber = findActiveVersion(versionsResponse.versions);
+
+  if (!activeVersionNumber) {
+    throw new Error(`Could not determine active version for application ${applicationID}`);
+  }
+
+  core.info(`Fetching details for version ${activeVersionNumber}...`);
+  const versionDetails = await client.getVersion(applicationID, activeVersionNumber);
+  const currentConfig = versionDetails.applicationVersion;
+
+  core.info(`Current image: ${currentConfig.image}`);
+  core.info(`New image: ${newImage}`);
+
+  if (currentConfig.image === newImage) {
+    core.warning(`Image is already set to ${newImage}. No update needed.`);
+    return {
+      applicationID,
+      version: activeVersionNumber,
+      activeVersion: activeVersionNumber
+    };
+  }
+
+  core.info('Preparing new version configuration...');
+  const newVersionConfig = prepareNewVersionConfig(currentConfig, newImage);
+
+  core.info('Creating new version...');
+  const createResponse = await client.createVersion(applicationID, newVersionConfig);
+  const newVersionNumber = createResponse.applicationVersion.version;
+
+  core.info(`Created new version: ${newVersionNumber}`);
+
+  if (shouldActivate) {
+    core.info(`Activating version ${newVersionNumber}...`);
+    await client.activateVersion(applicationID, newVersionNumber);
+    core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
+    return {
+      applicationID,
+      version: newVersionNumber,
+      activeVersion: newVersionNumber
+    };
+  } else {
+    core.info(`Version ${newVersionNumber} created but not activated (activate=false)`);
+    core.info(`To activate this version later, update the application's activeVersion to ${newVersionNumber}`);
+    return {
+      applicationID,
+      version: newVersionNumber,
+      activeVersion: activeVersionNumber
+    };
+  }
+}
+
 async function run(): Promise<void> {
   try {
-    const applicationID = core.getInput('applicationID', { required: true });
+    const applicationIDInput = core.getInput('applicationID', { required: true });
     const sakuraAccessToken = core.getInput('sakuraAccessToken', { required: true });
     const sakuraAccessTokenSecret = core.getInput('sakuraAccessTokenSecret', { required: true });
     const newImage = core.getInput('image', { required: true });
     const shouldActivate = core.getInput('activate', { required: false }) !== 'false';
 
     core.info('Validating inputs...');
-    validateUuid(applicationID, 'applicationID');
+    const applicationIDs = parseApplicationIDs(applicationIDInput);
     validateUuid(sakuraAccessToken, 'sakuraAccessToken');
     validateImageName(newImage);
 
+    core.info(`Processing ${applicationIDs.length} application(s)...`);
+
     const client = new AppRunApiClient(sakuraAccessToken, sakuraAccessTokenSecret);
 
-    core.info(`Fetching version list for application ${applicationID}...`);
-    const versionsResponse = await client.listVersions(applicationID);
-
-    core.debug(`Versions response: ${JSON.stringify(versionsResponse, null, 2)}`);
-
-    if (!versionsResponse.versions || versionsResponse.versions.length === 0) {
-      core.error(`No versions found. Response: ${JSON.stringify(versionsResponse, null, 2)}`);
-      throw new Error('No versions found for this application');
+    const results: UpdateResult[] = [];
+    for (const applicationID of applicationIDs) {
+      const result = await updateApplication(client, applicationID, newImage, shouldActivate);
+      results.push(result);
     }
 
-    core.info(`Found ${versionsResponse.versions.length} version(s)`);
-
-    const activeVersionNumber = findActiveVersion(versionsResponse.versions);
-
-    if (!activeVersionNumber) {
-      throw new Error('Could not determine active version');
+    core.info('\n--- Summary ---');
+    for (const result of results) {
+      core.info(`Application ${result.applicationID}: version=${result.version}, activeVersion=${result.activeVersion}`);
     }
 
-    core.info(`Fetching details for version ${activeVersionNumber}...`);
-    const versionDetails = await client.getVersion(applicationID, activeVersionNumber);
-    const currentConfig = versionDetails.applicationVersion;
+    const versions = results.map(r => r.version).join(',');
+    const activeVersions = results.map(r => r.activeVersion).join(',');
 
-    core.info(`Current image: ${currentConfig.image}`);
-    core.info(`New image: ${newImage}`);
-
-    if (currentConfig.image === newImage) {
-      core.warning(`Image is already set to ${newImage}. No update needed.`);
-      core.setOutput('version', activeVersionNumber);
-      core.setOutput('activeVersion', activeVersionNumber);
-      return;
-    }
-
-    core.info('Preparing new version configuration...');
-    const newVersionConfig = prepareNewVersionConfig(currentConfig, newImage);
-
-    core.info('Creating new version...');
-    const createResponse = await client.createVersion(applicationID, newVersionConfig);
-    const newVersionNumber = createResponse.applicationVersion.version;
-
-    core.info(`Created new version: ${newVersionNumber}`);
-    core.setOutput('version', newVersionNumber);
-
-    if (shouldActivate) {
-      core.info(`Activating version ${newVersionNumber}...`);
-      await client.activateVersion(applicationID, newVersionNumber);
-      core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
-      core.setOutput('activeVersion', newVersionNumber);
-    } else {
-      core.info(`Version ${newVersionNumber} created but not activated (activate=false)`);
-      core.info(`To activate this version later, update the application's activeVersion to ${newVersionNumber}`);
-      core.setOutput('activeVersion', activeVersionNumber);
-    }
+    core.setOutput('version', versions);
+    core.setOutput('activeVersion', activeVersions);
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message);
