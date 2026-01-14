@@ -1,6 +1,7 @@
 import {
   validateUuid,
   validateImageName,
+  parseApplicationIDs,
   findActiveVersion,
   prepareNewVersionConfig
 } from '../src/utils';
@@ -17,6 +18,47 @@ describe('Input Validation', () => {
       expect(() => validateUuid('invalid-uuid', 'test')).toThrow('test must be a valid UUID format');
       expect(() => validateUuid('123', 'test')).toThrow('test must be a valid UUID format');
       expect(() => validateUuid('', 'test')).toThrow('test must be a valid UUID format');
+    });
+  });
+
+  describe('parseApplicationIDs', () => {
+    test('parses single UUID', () => {
+      const result = parseApplicationIDs('123e4567-e89b-12d3-a456-426614174000');
+      expect(result).toEqual(['123e4567-e89b-12d3-a456-426614174000']);
+    });
+
+    test('parses multiple UUIDs separated by comma', () => {
+      const result = parseApplicationIDs('123e4567-e89b-12d3-a456-426614174000,550e8400-e29b-41d4-a716-446655440000');
+      expect(result).toEqual([
+        '123e4567-e89b-12d3-a456-426614174000',
+        '550e8400-e29b-41d4-a716-446655440000'
+      ]);
+    });
+
+    test('trims whitespace around UUIDs', () => {
+      const result = parseApplicationIDs(' 123e4567-e89b-12d3-a456-426614174000 , 550e8400-e29b-41d4-a716-446655440000 ');
+      expect(result).toEqual([
+        '123e4567-e89b-12d3-a456-426614174000',
+        '550e8400-e29b-41d4-a716-446655440000'
+      ]);
+    });
+
+    test('ignores empty entries', () => {
+      const result = parseApplicationIDs('123e4567-e89b-12d3-a456-426614174000,,550e8400-e29b-41d4-a716-446655440000');
+      expect(result).toEqual([
+        '123e4567-e89b-12d3-a456-426614174000',
+        '550e8400-e29b-41d4-a716-446655440000'
+      ]);
+    });
+
+    test('throws error for empty input', () => {
+      expect(() => parseApplicationIDs('')).toThrow('applicationID must contain at least one valid UUID');
+      expect(() => parseApplicationIDs('   ')).toThrow('applicationID must contain at least one valid UUID');
+      expect(() => parseApplicationIDs(',,')).toThrow('applicationID must contain at least one valid UUID');
+    });
+
+    test('throws error for invalid UUID in list', () => {
+      expect(() => parseApplicationIDs('123e4567-e89b-12d3-a456-426614174000,invalid-uuid')).toThrow('applicationID must be a valid UUID format');
     });
   });
 

@@ -4,7 +4,7 @@ author: 'tokuhirom'
 
 inputs:
   applicationID:
-    description: 'Application ID (UUID)'
+    description: 'Application ID (UUID). Multiple IDs can be specified separated by commas.'
     required: true
   sakuraAccessToken:
     description: 'Sakura Access Token (UUID)'
@@ -22,9 +22,9 @@ inputs:
 
 outputs:
   version:
-    description: 'The newly created version number'
+    description: 'The newly created version number(s). Comma-separated if multiple applications were updated.'
   activeVersion:
-    description: 'The activated version number (same as version if activate=true, otherwise the previously active version)'
+    description: 'The activated version number(s). Comma-separated if multiple applications were updated. (same as version if activate=true, otherwise the previously active version)'
 
 runs:
   using: 'node20'
