@@ -25692,6 +25692,21 @@ class AppRunApiClient {
         const credentials = Buffer.from(`${accessToken}:${accessTokenSecret}`).toString('base64');
         this.authHeader = `Basic ${credentials}`;
     }
+    async getApplication(applicationId) {
+        const url = `${this.baseUrl}/applications/${applicationId}`;
+        core.debug(`Fetching application from: ${url}`);
+        const response = await this.client.get(url, {
+            Authorization: this.authHeader
+        });
+        const statusCode = response.message.statusCode;
+        core.debug(`Response status code: ${statusCode}`);
+        if (statusCode !== 200) {
+            throw await this.handleError(response);
+        }
+        const body = await response.readBody();
+        core.debug(`Response body: ${body}`);
+        return JSON.parse(body);
+    }
     async listVersions(applicationId) {
         const url = `${this.baseUrl}/applications/${applicationId}/versions?maxItems=30`;
         core.debug(`Fetching versions from: ${url}`);
@@ -25820,6 +25835,10 @@ const api_client_1 = __nccwpck_require__(7475);
 const utils_1 = __nccwpck_require__(1798);
 async function updateApplication(client, applicationID, newImage, shouldActivate) {
     core.info(`\n--- Processing application ${applicationID} ---`);
+    core.info(`Fetching application info for ${applicationID}...`);
+    const appResponse = await client.getApplication(applicationID);
+    const applicationName = appResponse.application.name;
+    core.info(`Application name: ${applicationName}`);
     core.info(`Fetching version list for application ${applicationID}...`);
     const versionsResponse = await client.listVersions(applicationID);
     core.debug(`Versions response: ${JSON.stringify(versionsResponse, null, 2)}`);
@@ -25841,6 +25860,7 @@ async function updateApplication(client, applicationID, newImage, shouldActivate
         core.warning(`Image is already set to ${newImage}. No update needed.`);
         return {
             applicationID,
+            applicationName,
             version: activeVersionNumber,
             activeVersion: activeVersionNumber
         };
@@ -25857,6 +25877,7 @@ async function updateApplication(client, applicationID, newImage, shouldActivate
         core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
         return {
             applicationID,
+            applicationName,
             version: newVersionNumber,
             activeVersion: newVersionNumber
         };
@@ -25866,6 +25887,7 @@ async function updateApplication(client, applicationID, newImage, shouldActivate
         core.info(`To activate this version later, update the application's activeVersion to ${newVersionNumber}`);
         return {
             applicationID,
+            applicationName,
             version: newVersionNumber,
             activeVersion: activeVersionNumber
         };
@@ -25891,10 +25913,12 @@ async function run() {
         }
         core.info('\n--- Summary ---');
         for (const result of results) {
-            core.info(`Application ${result.applicationID}: version=${result.version}, activeVersion=${result.activeVersion}`);
+            core.info(`Application ${result.applicationName} (${result.applicationID}): version=${result.version}, activeVersion=${result.activeVersion}`);
         }
+        const applicationNames = results.map(r => r.applicationName).join(',');
         const versions = results.map(r => r.version).join(',');
         const activeVersions = results.map(r => r.activeVersion).join(',');
+        core.setOutput('applicationNames', applicationNames);
         core.setOutput('version', versions);
         core.setOutput('activeVersion', activeVersions);
     }

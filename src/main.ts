@@ -10,6 +10,7 @@ import {
 
 interface UpdateResult {
   applicationID: string;
+  applicationName: string;
   version: number;
   activeVersion: number;
 }
@@ -21,6 +22,11 @@ async function updateApplication(
   shouldActivate: boolean
 ): Promise<UpdateResult> {
   core.info(`\n--- Processing application ${applicationID} ---`);
+
+  core.info(`Fetching application info for ${applicationID}...`);
+  const appResponse = await client.getApplication(applicationID);
+  const applicationName = appResponse.application.name;
+  core.info(`Application name: ${applicationName}`);
 
   core.info(`Fetching version list for application ${applicationID}...`);
   const versionsResponse = await client.listVersions(applicationID);
@@ -51,6 +57,7 @@ async function updateApplication(
     core.warning(`Image is already set to ${newImage}. No update needed.`);
     return {
       applicationID,
+      applicationName,
       version: activeVersionNumber,
       activeVersion: activeVersionNumber
     };
@@ -71,6 +78,7 @@ async function updateApplication(
     core.info(`Successfully activated version ${newVersionNumber} with image ${newImage}`);
     return {
       applicationID,
+      applicationName,
       version: newVersionNumber,
       activeVersion: newVersionNumber
     };
@@ -79,6 +87,7 @@ async function updateApplication(
     core.info(`To activate this version later, update the application's activeVersion to ${newVersionNumber}`);
     return {
       applicationID,
+      applicationName,
       version: newVersionNumber,
       activeVersion: activeVersionNumber
     };
@@ -110,12 +119,14 @@ async function run(): Promise<void> {
 
     core.info('\n--- Summary ---');
     for (const result of results) {
-      core.info(`Application ${result.applicationID}: version=${result.version}, activeVersion=${result.activeVersion}`);
+      core.info(`Application ${result.applicationName} (${result.applicationID}): version=${result.version}, activeVersion=${result.activeVersion}`);
     }
 
+    const applicationNames = results.map(r => r.applicationName).join(',');
     const versions = results.map(r => r.version).join(',');
     const activeVersions = results.map(r => r.activeVersion).join(',');
 
+    core.setOutput('applicationNames', applicationNames);
     core.setOutput('version', versions);
     core.setOutput('activeVersion', activeVersions);
   } catch (error) {

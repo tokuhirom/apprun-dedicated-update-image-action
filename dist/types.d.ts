@@ -80,3 +80,11 @@ export interface ApiError {
     errorCode: string;
     message: string;
 }
+export interface Application {
+    id: string;
+    name: string;
+    activeVersion: number | null;
+}
+export interface GetApplicationResponse {
+    application: Application;
+}
