@@ -130,13 +130,51 @@ jobs:
 * `PUT https://secure.sakura.ad.jp/cloud/api/apprun-dedicated/1.0/applications/{applicationID}` を呼び出してアプリケーションのイメージを更新します
 * 結果として `$.activeVersion` を表示します
 
+## Related Tools
+
+### apprun-dedicated-application-provisioner との連携
+
+[apprun-dedicated-application-provisioner](https://github.com/tokuhirom/apprun-dedicated-application-provisioner) と組み合わせることで、AppRun 専有型のアプリケーション管理を効率的に行えます。
+
+| ツール | 役割 |
+|--------|------|
+| **apprun-dedicated-application-provisioner** | アプリケーションの設定（CPU、メモリ、スケーリング、環境変数など）を YAML で管理 |
+| **apprun-dedicated-update-image-action** | CI/CD パイプラインからコンテナイメージのみを更新 |
+
+### 推奨ワークフロー
+
+1. **設定管理**: `apprun-dedicated-application-provisioner` で CPU、メモリ、環境変数などの設定を YAML で管理し、手動または別の CI パイプラインで適用
+2. **イメージデプロイ**: アプリケーションコードの変更時に、この Action でイメージのみを更新
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  apprun-dedicated-application-provisioner                       │
+│  ・CPU/メモリ設定                                                │
+│  ・スケーリング設定                                              │
+│  ・環境変数                                                      │
+│  ・ポート設定                                                    │
+│  → YAML で宣言的に管理、plan/apply で適用                        │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  apprun-dedicated-update-image-action                           │
+│  ・コンテナイメージの更新                                        │
+│  → GitHub Actions で CI/CD パイプラインから自動デプロイ           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+この分離により：
+- **設定変更**はコードレビューを経て慎重に適用
+- **イメージ更新**は CI/CD で自動化して高速にデプロイ
+
 ## Release flow
 
 `v1` tag を更新する｡
 
 ## See also
 
-https://manual.sakura.ad.jp/api/cloud/apprun-dedicated/
+- https://manual.sakura.ad.jp/api/cloud/apprun-dedicated/
+- [apprun-dedicated-application-provisioner](https://github.com/tokuhirom/apprun-dedicated-application-provisioner) - YAML でアプリケーション設定を管理
 
 ## LICENSE
 
