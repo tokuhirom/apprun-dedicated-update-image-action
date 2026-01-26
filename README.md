@@ -14,6 +14,18 @@ AppRun 専有型を利用する際､image を差し替えたいときに簡単�
 - name: Update application version's image
   uses: tokuhirom/apprun-dedicated-update-image-action@v1
   with:
+    applicationName: my-app
+    sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
+    sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
+    image: 'nginx:alpine'
+```
+
+applicationID でも指定可能です：
+
+```yaml
+- name: Update application version's image
+  uses: tokuhirom/apprun-dedicated-update-image-action@v1
+  with:
     applicationID: ${{ vars.APPLICATION_ID }}
     sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
     sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
@@ -24,11 +36,14 @@ AppRun 専有型を利用する際､image を差し替えたいときに簡単�
 
 | 名前 | 必須 | デフォルト | 説明 |
 |------|------|-----------|------|
-| `applicationID` | Yes | - | AppRun アプリケーション ID（UUID 形式）。カンマ区切りで複数指定可能 |
+| `applicationID` | No* | - | AppRun アプリケーション ID（UUID 形式）。カンマ区切りで複数指定可能 |
+| `applicationName` | No* | - | AppRun アプリケーション名。カンマ区切りで複数指定可能 |
 | `sakuraAccessToken` | Yes | - | さくらクラウド API アクセストークン（UUID 形式） |
 | `sakuraAccessTokenSecret` | Yes | - | さくらクラウド API アクセストークンシークレット |
 | `image` | Yes | - | 新しいコンテナイメージ名（例: `nginx:latest`, `ghcr.io/user/repo:tag`） |
 | `activate` | No | `true` | 新しいバージョンを即座にアクティブ化するかどうか |
+
+\* `applicationID` または `applicationName` のいずれか（または両方）を指定する必要があります。両方指定した場合は、すべてのアプリケーションが更新されます。
 
 ### Outputs
 
@@ -102,22 +117,35 @@ jobs:
 
 ### 複数アプリケーションを同時に更新する例
 
-複数のアプリケーションを同時に更新したい場合、カンマ区切りで applicationID を指定できます：
+複数のアプリケーションを同時に更新したい場合、カンマ区切りで applicationName を指定できます：
 
 ```yaml
 - name: Update multiple applications
   id: update
   uses: tokuhirom/apprun-dedicated-update-image-action@v1
   with:
-    applicationID: ${{ vars.APPLICATION_ID_1 }},${{ vars.APPLICATION_ID_2 }}
+    applicationName: webapp,api-server,worker
     sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
     sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
     image: ghcr.io/${{ github.repository }}:${{ github.sha }}
 
 - name: Show updated versions
   run: |
+    echo "Updated applications: ${{ steps.update.outputs.applicationNames }}"
     echo "Created versions: ${{ steps.update.outputs.version }}"
     echo "Active versions: ${{ steps.update.outputs.activeVersion }}"
+```
+
+applicationID でも同様に複数指定可能です：
+
+```yaml
+- name: Update multiple applications by ID
+  uses: tokuhirom/apprun-dedicated-update-image-action@v1
+  with:
+    applicationID: ${{ vars.APPLICATION_ID_1 }},${{ vars.APPLICATION_ID_2 }}
+    sakuraAccessToken: ${{ vars.SAKURA_ACCESS_TOKEN }}
+    sakuraAccessTokenSecret: ${{ secrets.SAKURA_ACCESS_TOKEN_SECRET }}
+    image: ghcr.io/${{ github.repository }}:${{ github.sha }}
 ```
 
 この機能は、同じイメージを使用する複数のアプリケーション（例：ステージング環境と本番環境）を同時にデプロイしたい場合に便利です。

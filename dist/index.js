@@ -25707,6 +25707,21 @@ class AppRunApiClient {
         core.debug(`Response body: ${body}`);
         return JSON.parse(body);
     }
+    async listApplications() {
+        const url = `${this.baseUrl}/applications?maxItems=30`;
+        core.debug(`Fetching applications from: ${url}`);
+        const response = await this.client.get(url, {
+            Authorization: this.authHeader
+        });
+        const statusCode = response.message.statusCode;
+        core.debug(`Response status code: ${statusCode}`);
+        if (statusCode !== 200) {
+            throw await this.handleError(response);
+        }
+        const body = await response.readBody();
+        core.debug(`Response body: ${body}`);
+        return JSON.parse(body);
+    }
     async listVersions(applicationId) {
         const url = `${this.baseUrl}/applications/${applicationId}/versions?maxItems=30`;
         core.debug(`Fetching versions from: ${url}`);
@@ -25833,6 +25848,45 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(7484));
 const api_client_1 = __nccwpck_require__(7475);
 const utils_1 = __nccwpck_require__(1798);
+function parseNames(input) {
+    return input.split(',').map(name => name.trim()).filter(name => name.length > 0);
+}
+async function resolveApplicationIDs(client, applicationIDInput, applicationNameInput) {
+    const applicationIDs = [];
+    // Parse applicationID input
+    if (applicationIDInput) {
+        const ids = (0, utils_1.parseApplicationIDs)(applicationIDInput);
+        applicationIDs.push(...ids);
+    }
+    // Parse applicationName input and resolve to IDs
+    if (applicationNameInput) {
+        const names = parseNames(applicationNameInput);
+        if (names.length > 0) {
+            core.info('Fetching application list to resolve names...');
+            const response = await client.listApplications();
+            const appMap = new Map();
+            for (const app of response.applications) {
+                appMap.set(app.name, app);
+            }
+            for (const name of names) {
+                const app = appMap.get(name);
+                if (!app) {
+                    const availableNames = response.applications.map(a => a.name).join(', ');
+                    throw new Error(`Application "${name}" not found. Available applications: ${availableNames}`);
+                }
+                // Avoid duplicates if same app specified by both ID and name
+                if (!applicationIDs.includes(app.applicationID)) {
+                    applicationIDs.push(app.applicationID);
+                }
+                core.info(`Resolved "${name}" -> ${app.applicationID}`);
+            }
+        }
+    }
+    if (applicationIDs.length === 0) {
+        throw new Error('Either applicationID or applicationName must be specified');
+    }
+    return applicationIDs;
+}
 async function updateApplication(client, applicationID, newImage, shouldActivate) {
     core.info(`\n--- Processing application ${applicationID} ---`);
     core.info(`Fetching application info for ${applicationID}...`);
@@ -25895,17 +25949,18 @@ async function updateApplication(client, applicationID, newImage, shouldActivate
 }
 async function run() {
     try {
-        const applicationIDInput = core.getInput('applicationID', { required: true });
+        const applicationIDInput = core.getInput('applicationID', { required: false });
+        const applicationNameInput = core.getInput('applicationName', { required: false });
         const sakuraAccessToken = core.getInput('sakuraAccessToken', { required: true });
         const sakuraAccessTokenSecret = core.getInput('sakuraAccessTokenSecret', { required: true });
         const newImage = core.getInput('image', { required: true });
         const shouldActivate = core.getInput('activate', { required: false }) !== 'false';
         core.info('Validating inputs...');
-        const applicationIDs = (0, utils_1.parseApplicationIDs)(applicationIDInput);
         (0, utils_1.validateUuid)(sakuraAccessToken, 'sakuraAccessToken');
         (0, utils_1.validateImageName)(newImage);
-        core.info(`Processing ${applicationIDs.length} application(s)...`);
         const client = new api_client_1.AppRunApiClient(sakuraAccessToken, sakuraAccessTokenSecret);
+        const applicationIDs = await resolveApplicationIDs(client, applicationIDInput, applicationNameInput);
+        core.info(`Processing ${applicationIDs.length} application(s)...`);
         const results = [];
         for (const applicationID of applicationIDs) {
             const result = await updateApplication(client, applicationID, newImage, shouldActivate);

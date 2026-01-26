@@ -7,6 +7,7 @@ import type {
   CreateApplicationVersionConfig,
   UpdateApplicationRequest,
   GetApplicationResponse,
+  ListApplicationsResponse,
   ApiError
 } from './types';
 
@@ -26,6 +27,27 @@ export class AppRunApiClient {
     const url = `${this.baseUrl}/applications/${applicationId}`;
 
     core.debug(`Fetching application from: ${url}`);
+
+    const response = await this.client.get(url, {
+      Authorization: this.authHeader
+    });
+
+    const statusCode = response.message.statusCode;
+    core.debug(`Response status code: ${statusCode}`);
+
+    if (statusCode !== 200) {
+      throw await this.handleError(response);
+    }
+
+    const body = await response.readBody();
+    core.debug(`Response body: ${body}`);
+    return JSON.parse(body);
+  }
+
+  async listApplications(): Promise<ListApplicationsResponse> {
+    const url = `${this.baseUrl}/applications?maxItems=30`;
+
+    core.debug(`Fetching applications from: ${url}`);
 
     const response = await this.client.get(url, {
       Authorization: this.authHeader

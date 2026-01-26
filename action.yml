@@ -4,8 +4,11 @@ author: 'tokuhirom'
 
 inputs:
   applicationID:
-    description: 'Application ID (UUID). Multiple IDs can be specified separated by commas.'
-    required: true
+    description: 'Application ID (UUID). Multiple IDs can be specified separated by commas. Either applicationID or applicationName is required.'
+    required: false
+  applicationName:
+    description: 'Application name. Multiple names can be specified separated by commas. Either applicationID or applicationName is required.'
+    required: false
   sakuraAccessToken:
     description: 'Sakura Access Token (UUID)'
     required: true
