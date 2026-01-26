@@ -43,7 +43,7 @@ applicationID でも指定可能です：
 | `image` | Yes | - | 新しいコンテナイメージ名（例: `nginx:latest`, `ghcr.io/user/repo:tag`） |
 | `activate` | No | `true` | 新しいバージョンを即座にアクティブ化するかどうか |
 
-\* `applicationID` または `applicationName` のいずれか（または両方）を指定する必要があります。両方指定した場合は、すべてのアプリケーションが更新されます。
+\* `applicationID` または `applicationName` のいずれか（または両方）を指定する必要があります。両方指定した場合は、指定されたアプリケーションがすべて更新されます（重複は除外）。
 
 ### Outputs
 
