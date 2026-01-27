@@ -43,17 +43,18 @@ export function validateImageName(image: string): void {
   }
 }
 
-export function findActiveVersion(versions: ApplicationVersionSummary[]): number | null {
+export function findActiveVersion(versions: ApplicationVersionSummary[], applicationName?: string): number | null {
   const sorted = [...versions].sort((a, b) => b.version - a.version);
   const active = sorted.find(v => v.activeNodeCount > 0);
+  const appLabel = applicationName ? `[${applicationName}] ` : '';
 
   if (active) {
-    core.info(`Found active version: ${active.version} (image: ${active.image})`);
+    core.info(`${appLabel}Found active version: ${active.version} (image: ${active.image})`);
     return active.version;
   }
 
   if (sorted.length > 0) {
-    core.warning(`No active version found, using latest version: ${sorted[0].version}`);
+    core.warning(`${appLabel}No active version found, using latest version: ${sorted[0].version}`);
     return sorted[0].version;
   }
 

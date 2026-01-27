@@ -91,7 +91,7 @@ async function updateApplication(
 
   core.info(`Found ${versionsResponse.versions.length} version(s)`);
 
-  const activeVersionNumber = findActiveVersion(versionsResponse.versions);
+  const activeVersionNumber = findActiveVersion(versionsResponse.versions, applicationName);
 
   if (!activeVersionNumber) {
     throw new Error(`Could not determine active version for application ${applicationID}`);

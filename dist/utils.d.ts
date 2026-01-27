@@ -2,5 +2,5 @@ import type { ApplicationVersionSummary, ReadApplicationVersionConfig, CreateApp
 export declare function validateUuid(value: string, fieldName: string): void;
 export declare function parseApplicationIDs(value: string): string[];
 export declare function validateImageName(image: string): void;
-export declare function findActiveVersion(versions: ApplicationVersionSummary[]): number | null;
+export declare function findActiveVersion(versions: ApplicationVersionSummary[], applicationName?: string): number | null;
 export declare function prepareNewVersionConfig(existingConfig: ReadApplicationVersionConfig, newImage: string): CreateApplicationVersionConfig;
