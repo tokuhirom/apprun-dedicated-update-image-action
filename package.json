@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "GitHub Action to update AppRun Dedicated application images",
   "main": "dist/index.js",
+  "overrides": {
+    "undici": ">=6.23.0"
+  },
   "scripts": {
     "build": "tsc",
     "test": "jest",
