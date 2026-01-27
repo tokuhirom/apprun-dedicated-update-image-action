@@ -38636,7 +38636,7 @@ async function updateApplication(client, applicationID, newImage, shouldActivate
         throw new Error(`No versions found for application ${applicationID}`);
     }
     core.info(`Found ${versionsResponse.versions.length} version(s)`);
-    const activeVersionNumber = (0, utils_1.findActiveVersion)(versionsResponse.versions);
+    const activeVersionNumber = (0, utils_1.findActiveVersion)(versionsResponse.versions, applicationName);
     if (!activeVersionNumber) {
         throw new Error(`Could not determine active version for application ${applicationID}`);
     }
@@ -38799,15 +38799,16 @@ function validateImageName(image) {
         throw new Error(`Invalid image name format: ${image}`);
     }
 }
-function findActiveVersion(versions) {
+function findActiveVersion(versions, applicationName) {
     const sorted = [...versions].sort((a, b) => b.version - a.version);
     const active = sorted.find(v => v.activeNodeCount > 0);
+    const appLabel = applicationName ? `[${applicationName}] ` : '';
     if (active) {
-        core.info(`Found active version: ${active.version} (image: ${active.image})`);
+        core.info(`${appLabel}Found active version: ${active.version} (image: ${active.image})`);
         return active.version;
     }
     if (sorted.length > 0) {
-        core.warning(`No active version found, using latest version: ${sorted[0].version}`);
+        core.warning(`${appLabel}No active version found, using latest version: ${sorted[0].version}`);
         return sorted[0].version;
     }
     return null;
