@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import { AppRunApiClient } from './api-client';
+import type { ApplicationSummary } from './types';
 import {
   parseApplicationIDs,
   validateUuid,
@@ -13,6 +14,56 @@ interface UpdateResult {
   applicationName: string;
   version: number;
   activeVersion: number;
+}
+
+function parseNames(input: string): string[] {
+  return input.split(',').map(name => name.trim()).filter(name => name.length > 0);
+}
+
+async function resolveApplicationIDs(
+  client: AppRunApiClient,
+  applicationIDInput: string,
+  applicationNameInput: string
+): Promise<string[]> {
+  const applicationIDs: string[] = [];
+
+  // Parse applicationID input
+  if (applicationIDInput) {
+    const ids = parseApplicationIDs(applicationIDInput);
+    applicationIDs.push(...ids);
+  }
+
+  // Parse applicationName input and resolve to IDs
+  if (applicationNameInput) {
+    const names = parseNames(applicationNameInput);
+    if (names.length > 0) {
+      core.info('Fetching application list to resolve names...');
+      const response = await client.listApplications();
+      const appMap = new Map<string, ApplicationSummary>();
+      for (const app of response.applications) {
+        appMap.set(app.name, app);
+      }
+
+      for (const name of names) {
+        const app = appMap.get(name);
+        if (!app) {
+          const availableNames = response.applications.map(a => a.name).join(', ');
+          throw new Error(`Application "${name}" not found. Available applications: ${availableNames}`);
+        }
+        // Avoid duplicates if same app specified by both ID and name
+        if (!applicationIDs.includes(app.applicationID)) {
+          applicationIDs.push(app.applicationID);
+        }
+        core.info(`Resolved "${name}" -> ${app.applicationID}`);
+      }
+    }
+  }
+
+  if (applicationIDs.length === 0) {
+    throw new Error('Either applicationID or applicationName must be specified');
+  }
+
+  return applicationIDs;
 }
 
 async function updateApplication(
@@ -96,20 +147,21 @@ async function updateApplication(
 
 async function run(): Promise<void> {
   try {
-    const applicationIDInput = core.getInput('applicationID', { required: true });
+    const applicationIDInput = core.getInput('applicationID', { required: false });
+    const applicationNameInput = core.getInput('applicationName', { required: false });
     const sakuraAccessToken = core.getInput('sakuraAccessToken', { required: true });
     const sakuraAccessTokenSecret = core.getInput('sakuraAccessTokenSecret', { required: true });
     const newImage = core.getInput('image', { required: true });
     const shouldActivate = core.getInput('activate', { required: false }) !== 'false';
 
     core.info('Validating inputs...');
-    const applicationIDs = parseApplicationIDs(applicationIDInput);
     validateUuid(sakuraAccessToken, 'sakuraAccessToken');
     validateImageName(newImage);
 
-    core.info(`Processing ${applicationIDs.length} application(s)...`);
-
     const client = new AppRunApiClient(sakuraAccessToken, sakuraAccessTokenSecret);
+
+    const applicationIDs = await resolveApplicationIDs(client, applicationIDInput, applicationNameInput);
+    core.info(`Processing ${applicationIDs.length} application(s)...`);
 
     const results: UpdateResult[] = [];
     for (const applicationID of applicationIDs) {

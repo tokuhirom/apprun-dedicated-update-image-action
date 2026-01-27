@@ -100,3 +100,16 @@ export interface Application {
 export interface GetApplicationResponse {
   application: Application;
 }
+
+export interface ApplicationSummary {
+  applicationID: string;
+  name: string;
+  clusterID: string;
+  clusterName: string;
+  activeVersion: number | null;
+}
+
+export interface ListApplicationsResponse {
+  applications: ApplicationSummary[];
+  nextCursor?: string;
+}
